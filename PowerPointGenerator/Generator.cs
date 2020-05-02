@@ -29,7 +29,7 @@ namespace PowerPointGenerator
             this.tmpDestination = System.IO.Path.GetTempPath() + Guid.NewGuid().ToString() + ".pptx";
             File.Copy(sourceFile, tmpDestination);
             this.document = PresentationDocument.Open(tmpDestination, true);
-            this.data =  ReadCsvData(sourceDataFile);
+            this.data = ReadCsvData(sourceDataFile);
         }
 
         private List<Dictionary<string, string>> ReadCsvData(string sourceDataFile)
@@ -72,7 +72,7 @@ namespace PowerPointGenerator
             SaveAndCloseDocument();
         }
 
-        public void Save(string outputPath)
+        public void SaveInDestination(string outputPath)
         {
             File.Copy(tmpDestination, outputPath, true);
         }
@@ -86,7 +86,7 @@ namespace PowerPointGenerator
         private void CreateAndFillDataSlide(SlidePart templateSlide, Dictionary<string, string> line)
         {
             SlidePart ticketSlide = CloneSlidePart(templateSlide);
-            List<OpenXmlElement> placeholderElements = GetChildByRegex(ticketSlide.Slide.ChildElements, PlaceholderPattern);
+            List<OpenXmlElement> placeholderElements = GetChildShapesByPlaceholderpattern(ticketSlide.Slide.ChildElements);
             foreach (OpenXmlElement placeholderElement in placeholderElements)
             {
                 FillPlaceholder((P.Shape)placeholderElement, line);
@@ -98,7 +98,7 @@ namespace PowerPointGenerator
         private SlidePart GetTemplateSlide()
         {
             var slideParts = document.PresentationPart.SlideParts.ToList();
-            var templateTicketSlide = slideParts.First(s => GetChildByRegex(s.Slide.ChildElements, PlaceholderPattern) != null);
+            var templateTicketSlide = slideParts.First(s => GetChildShapesByPlaceholderpattern(s.Slide.ChildElements) != null);
             return templateTicketSlide;
         }
 
@@ -125,7 +125,7 @@ namespace PowerPointGenerator
                                 new BodyProperties(),
                                 new ListStyle(),
                                 new Paragraph(
-                                    new Run() { Text = new D.Text(value) }, 
+                                    new Run() { Text = new D.Text(value) },
                                     new EndParagraphRunProperties() { Language = "en-US" }));
 
         }
@@ -144,41 +144,25 @@ namespace PowerPointGenerator
             return sp;
         }
 
-        private static List<OpenXmlElement> GetChildByRegex(OpenXmlElementList list, string searchPattern)
+        private List<OpenXmlElement> GetChildShapesByPlaceholderpattern(OpenXmlElementList list)
         {
             List<OpenXmlElement> found = new List<OpenXmlElement>();
             foreach (var element in list)
             {
-                if (!string.IsNullOrEmpty(element.InnerText) && Regex.IsMatch(element.InnerText, searchPattern))
-                {
-                    if (element is P.Shape)
-                    {
-                        found.Add(element);
-                    }
-                    else
-                    {
-                        var val = GetChildByRegex(element.ChildElements, searchPattern);
-                        if (val != null && val.Count > 0)
-                        {
-                            found.AddRange(val);
-                        }
-                        else
-                        {
-                            found.Add(element);
-                        }
-                    }
-                }
-                else
-                {
-                    var val = GetChildByRegex(element.ChildElements, searchPattern);
-                    if (val != null)
-                    {
-                        found.AddRange(val);
-                    }
-                }
+                found.AddRange(FindShapesIncludingElement(element));
             }
             return found;
         }
 
+        private List<OpenXmlElement> FindShapesIncludingElement(OpenXmlElement element)
+        {
+            bool elementMatchesPattern = !string.IsNullOrEmpty(element.InnerText) && Regex.IsMatch(element.InnerText, PlaceholderPattern);
+            if (elementMatchesPattern && element is P.Shape)
+            {
+                return new List<OpenXmlElement> { element };
+            }
+            var foundChilds = GetChildShapesByPlaceholderpattern(element.ChildElements);
+            return foundChilds;
+        }
     }
 }
