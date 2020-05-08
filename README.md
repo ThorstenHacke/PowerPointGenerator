@@ -6,3 +6,9 @@ The placeholders are formated like this: ##FIELDNAME##
 The Search-Alorythm is Regex-based an searches a Shape with includes a placeholder. All text within the shape is replaced.
 The CSV File has to provide a header row. All Headers are handled as fields. Whitespaces are ignored.
 Headers should be distinct. 
+
+# Execution
+After cloning the solution you can start the tool by running the Start.bat
+
+# Requirements
+- At least dotnetcore 2.1
