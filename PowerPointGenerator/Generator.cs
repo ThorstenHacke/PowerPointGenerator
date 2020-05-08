@@ -18,7 +18,7 @@ namespace PowerPointGenerator
     public class Generator
     {
 
-        private const string PlaceholderPattern = @"##(?'key'\w*)##";
+        private const string PlaceholderPattern = @"##(?'key'\S*)##";
         private const string PatternGroupKey = "key";
         private readonly string tmpDestination;
         private readonly List<Dictionary<string, string>> data;
@@ -89,7 +89,14 @@ namespace PowerPointGenerator
             List<OpenXmlElement> placeholderElements = GetChildShapesByPlaceholderpattern(ticketSlide.Slide.ChildElements);
             foreach (OpenXmlElement placeholderElement in placeholderElements)
             {
-                FillPlaceholder((P.Shape)placeholderElement, line);
+                try
+                {
+                    FillPlaceholder((P.Shape)placeholderElement, line);
+                }
+                catch
+                {
+                    //TODO: Handle this
+                }
             }
 
             InsertSlideInPresentation(ticketSlide);
